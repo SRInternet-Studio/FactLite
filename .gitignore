@@ -216,4 +216,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+test_demo/
 test_demo_private.py

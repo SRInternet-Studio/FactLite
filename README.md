@@ -4,8 +4,7 @@ English | [中文](README_CN.md)
 
 **Give Your LLM a "System 2" Brain with a Single Decorator.**
 
-[![PyPI version](https://badge.fury.io/py/factlite.svg)](https://badge.fury.io/py/factlite)
-[![Build Status](https://travis-ci.org/your-username/factlite.svg?branch=main)](https://travis-ci.org/your-username/factlite)
+[![PyPI version](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 
@@ -28,7 +27,7 @@ In the last mile of deploying Generative AI, **hallucination is the final boss**
 ## 📦 Installation
 
 ```bash
-pip install factlite
+pip install FactLite
 ```
 
 ## 🎯 Quick Start: The "Aha!" Moment

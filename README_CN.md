@@ -4,8 +4,7 @@
 
 **只需一个装饰器，为你的大语言模型（LLM）装上“System 2”大脑。**
 
-[![PyPI 版本](https://badge.fury.io/py/factlite.svg)](https://badge.fury.io/py/factlite)
-[![构建状态](https://travis-ci.org/your-username/factlite.svg?branch=main)](https://travis-ci.org/your-username/factlite)
+[![PyPI 版本](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 
@@ -28,7 +27,7 @@
 ## 📦 安装
 
 ```bash
-pip install factlite
+pip install FactLite
 ```
 
 ## 🎯 快速上手：感受“灵光一现”的瞬间
