@@ -62,8 +62,7 @@ client = openai.OpenAI(api_key="你的密钥")
 
 # 配置一个强大的“裁判”和你的 API 密钥
 config = verify.config(
-    api_key="你的密钥",
-    rule=rules.LLMJudge(model="gpt-4o-mini"), # 使用 gpt-4o-mini 作为“裁判”
+    rule=rules.LLMJudge(model="gpt-4o-mini", api_key="你的密钥"), # 使用 gpt-4o-mini 作为“裁判”
     max_retries=1 # 最多重试 1 次
 )
 

@@ -62,8 +62,7 @@ client = openai.OpenAI(api_key="your-key")
 
 # Configure a powerful judge and your API key
 config = verify.config(
-    api_key="your-key",
-    rule=rules.LLMJudge(model="gpt-4o-mini"),
+    rule=rules.LLMJudge(model="gpt-4o-mini", api_key="your-key"),
     max_retries=1
 )
 
