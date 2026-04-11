@@ -74,7 +74,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:factlite/factlite.dart';
 
-Future<String> askAI(String question) async {
+// A helper to call the OpenAI API (you can use any SDK or HTTP client)
+Future<String> chatCompletion(List<Map<String, String>> messages) async {
   final response = await http.post(
     Uri.parse('https://api.openai.com/v1/chat/completions'),
     headers: {
@@ -82,18 +83,25 @@ Future<String> askAI(String question) async {
       'Authorization': 'Bearer your-key',
     },
     body: jsonEncode({
-      'model': 'gpt-3.5-turbo',
-      'messages': [{'role': 'user', 'content': question}],
+      'model': 'gpt-4o-mini',
+      'messages': messages,
     }),
   );
   final body = jsonDecode(response.body);
   return body['choices'][0]['message']['content'];
 }
 
+Future<String> askAI(String question) async {
+  final result = await chatCompletion([
+    {'role': 'user', 'content': question},
+  ]);
+  return result;
+}
+
 void main() async {
-  // Configure a judge
+  // Configure a judge — just pass in the same chat completion function!
   final config = FactLiteConfig(
-    rule: LLMJudge(apiKey: 'your-key', model: 'gpt-4o-mini'),
+    rule: LLMJudge(chatCompletion: chatCompletion),
     maxRetries: 1,
     onFail: ReturnBest(),
   );
@@ -129,7 +137,7 @@ Use `VerifiedGenerator` to create a reusable verified function, perfect for bind
 ```dart
 final verifiedAsk = VerifiedGenerator(
   config: FactLiteConfig(
-    rule: LLMJudge(apiKey: 'your-key', model: 'gpt-4o-mini'),
+    rule: LLMJudge(chatCompletion: chatCompletion),
     maxRetries: 2,
   ),
   generator: askAI,
@@ -260,7 +268,7 @@ The core function for verified LLM calls.
 
 | Class                          | Description                                           |
 |--------------------------------|-------------------------------------------------------|
-| `LLMJudge`                    | Uses an OpenAI-compatible LLM API to evaluate answers |
+| `LLMJudge`                    | Accepts a user-provided `ChatCompletionFunction` to evaluate answers via any LLM |
 | `CustomJudge`                  | Uses a custom function for evaluation                 |
 | `FactLiteConfig`               | Groups rule, retries, and fallback into one object    |
 | `VerifiedGenerator`            | Reusable wrapper binding config to a generator        |

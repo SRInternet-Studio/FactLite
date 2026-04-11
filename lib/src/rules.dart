@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'actions.dart';
 
@@ -20,29 +19,50 @@ abstract class BaseRule {
   Future<EvaluationResult> evaluate(String userPrompt, String answer);
 }
 
-/// A judge that uses an LLM (OpenAI-compatible API) to evaluate answers.
+/// Type definition for a chat completion function.
 ///
-/// Sends the user prompt and answer to a specified model and expects
-/// a JSON response with `is_pass` and `feedback` fields.
+/// Takes a list of message maps (each with `role` and `content` keys)
+/// and returns the assistant's response content as a [String].
+///
+/// This allows the user to use any LLM SDK or HTTP client of their choice.
+///
+/// Example with a hypothetical OpenAI Dart client:
+/// ```dart
+/// final chatCompletion = (List<Map<String, String>> messages) async {
+///   final response = await openai.chat.completions.create(
+///     model: 'gpt-4o-mini',
+///     messages: messages,
+///   );
+///   return response.choices.first.message.content;
+/// };
+/// ```
+typedef ChatCompletionFunction = Future<String> Function(
+    List<Map<String, String>> messages);
+
+/// A judge that uses an LLM to evaluate answers.
+///
+/// Instead of managing HTTP requests internally, `LLMJudge` accepts a
+/// [ChatCompletionFunction] provided by the user. This means you can use
+/// any OpenAI-compatible SDK, HTTP client, or custom implementation.
+///
+/// Example:
+/// ```dart
+/// final judge = LLMJudge(
+///   chatCompletion: (messages) async {
+///     final response = await openai.chat.completions.create(
+///       model: 'gpt-4o-mini',
+///       messages: messages,
+///       responseFormat: {'type': 'json_object'},
+///     );
+///     return response.choices.first.message.content;
+///   },
+/// );
+/// ```
 class LLMJudge extends BaseRule {
-  /// The model to use for evaluation (e.g., "gpt-4o-mini").
-  final String model;
+  /// The user-provided chat completion function.
+  final ChatCompletionFunction chatCompletion;
 
-  /// The API key for authentication.
-  final String apiKey;
-
-  /// The base URL of the OpenAI-compatible API.
-  final String baseUrl;
-
-  /// Optional custom HTTP client for testing.
-  final http.Client? httpClient;
-
-  LLMJudge({
-    this.model = 'gpt-4o-mini',
-    required this.apiKey,
-    this.baseUrl = 'https://api.openai.com/v1',
-    this.httpClient,
-  });
+  LLMJudge({required this.chatCompletion});
 
   @override
   Future<EvaluationResult> evaluate(String userPrompt, String answer) async {
@@ -56,58 +76,25 @@ Response: $answer
 JSON output:''';
 
     try {
-      final client = httpClient ?? http.Client();
-      final shouldCloseClient = httpClient == null;
+      final messages = [
+        {
+          'role': 'system',
+          'content':
+              'You are a fact-checking judge. Return only JSON output.',
+        },
+        {
+          'role': 'user',
+          'content': evaluationPrompt,
+        },
+      ];
 
-      try {
-        final url = Uri.parse('$baseUrl/chat/completions');
-        final response = await client.post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $apiKey',
-          },
-          body: jsonEncode({
-            'model': model,
-            'messages': [
-              {
-                'role': 'system',
-                'content':
-                    'You are a fact-checking judge. Return only JSON output.',
-              },
-              {
-                'role': 'user',
-                'content': evaluationPrompt,
-              },
-            ],
-            'response_format': {'type': 'json_object'},
-          }),
-        );
+      final resultStr = await chatCompletion(messages);
+      final result = jsonDecode(resultStr) as Map<String, dynamic>;
 
-        if (response.statusCode != 200) {
-          final errorMessage =
-              'LLMJudge API call failed with status ${response.statusCode}: ${response.body}';
-          _logger.severe(errorMessage);
-          return EvaluationResult(
-            isPass: false,
-            feedback: errorMessage,
-          );
-        }
-
-        final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
-        final resultStr =
-            responseBody['choices'][0]['message']['content'] as String;
-        final result = jsonDecode(resultStr) as Map<String, dynamic>;
-
-        return EvaluationResult.fromMap(result);
-      } finally {
-        if (shouldCloseClient) {
-          client.close();
-        }
-      }
+      return EvaluationResult.fromMap(result);
     } catch (e) {
       final errorMessage =
-          'LLMJudge API call failed: $e. Please check your API key and network connection.';
+          'LLMJudge evaluation failed: $e. Please check your chatCompletion function.';
       _logger.severe(errorMessage);
       return EvaluationResult(
         isPass: false,

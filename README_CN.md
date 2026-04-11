@@ -74,7 +74,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:factlite/factlite.dart';
 
-Future<String> askAI(String question) async {
+// 一个调用 OpenAI API 的辅助函数（你可以使用任何 SDK 或 HTTP 客户端）
+Future<String> chatCompletion(List<Map<String, String>> messages) async {
   final response = await http.post(
     Uri.parse('https://api.openai.com/v1/chat/completions'),
     headers: {
@@ -82,18 +83,25 @@ Future<String> askAI(String question) async {
       'Authorization': 'Bearer 你的密钥',
     },
     body: jsonEncode({
-      'model': 'gpt-3.5-turbo',
-      'messages': [{'role': 'user', 'content': question}],
+      'model': 'gpt-4o-mini',
+      'messages': messages,
     }),
   );
   final body = jsonDecode(response.body);
   return body['choices'][0]['message']['content'];
 }
 
+Future<String> askAI(String question) async {
+  final result = await chatCompletion([
+    {'role': 'user', 'content': question},
+  ]);
+  return result;
+}
+
 void main() async {
-  // 配置一个"裁判"
+  // 配置一个"裁判" — 只需传入同一个 chatCompletion 函数！
   final config = FactLiteConfig(
-    rule: LLMJudge(apiKey: '你的密钥', model: 'gpt-4o-mini'),
+    rule: LLMJudge(chatCompletion: chatCompletion),
     maxRetries: 1,
     onFail: ReturnBest(),
   );
@@ -129,7 +137,7 @@ void main() async {
 ```dart
 final verifiedAsk = VerifiedGenerator(
   config: FactLiteConfig(
-    rule: LLMJudge(apiKey: '你的密钥', model: 'gpt-4o-mini'),
+    rule: LLMJudge(chatCompletion: chatCompletion),
     maxRetries: 2,
   ),
   generator: askAI,
@@ -260,7 +268,7 @@ FactLite 将你的 LLM 调用包装在一个简单而强大的控制循环中：
 
 | 类                              | 说明                                              |
 |--------------------------------|---------------------------------------------------|
-| `LLMJudge`                    | 使用 OpenAI 兼容的 LLM API 来评估答案                |
+| `LLMJudge`                    | 接受用户提供的 `ChatCompletionFunction`，通过任何 LLM 评估答案 |
 | `CustomJudge`                  | 使用自定义函数进行评估                                |
 | `FactLiteConfig`               | 将规则、重试次数和兜底策略组合为一个配置对象              |
 | `VerifiedGenerator`            | 可复用的包装器，将配置绑定到生成器函数                    |

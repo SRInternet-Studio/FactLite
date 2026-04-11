@@ -9,7 +9,12 @@
 /// import 'package:factlite/factlite.dart';
 ///
 /// final config = FactLiteConfig(
-///   rule: LLMJudge(apiKey: 'your-key', model: 'gpt-4o-mini'),
+///   rule: LLMJudge(
+///     chatCompletion: (messages) async {
+///       // Use your preferred LLM SDK or HTTP client here
+///       return await yourOpenAIClient.chatCompletion(messages);
+///     },
+///   ),
 ///   maxRetries: 2,
 ///   onFail: ReturnBest(),
 /// );
@@ -36,7 +41,8 @@ export 'src/actions.dart'
         EvaluationResult;
 
 // Rules - Judge implementations
-export 'src/rules.dart' show BaseRule, LLMJudge, CustomJudge, EvalFunction;
+export 'src/rules.dart'
+    show BaseRule, LLMJudge, CustomJudge, EvalFunction, ChatCompletionFunction;
 
 // Config
 export 'src/config.dart' show FactLiteConfig;
