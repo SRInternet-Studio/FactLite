@@ -2,165 +2,273 @@
 
 English | [中文](README_CN.md)
 
-**Give Your LLM a "System 2" Brain with a Single Decorator.**
+**Give Your LLM a "System 2" Brain with a Simple Function Wrapper.**
 
-[![PyPI version](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
+[![pub package](https://img.shields.io/pub/v/factlite.svg)](https://pub.dev/packages/factlite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 
 ---
 
-In the last mile of deploying Generative AI, **hallucination is the final boss**. Heavy frameworks like LangChain introduce too much boilerplate and complexity, while raw API calls offer no safety net.
+In the last mile of deploying Generative AI, **hallucination is the final boss**. Heavy frameworks introduce too much boilerplate and complexity, while raw API calls offer no safety net.
 
-**FactLite** is a production-ready, feather-light Python micro-framework designed to solve this exact problem. It enhances your existing LLM calls with an automated, self-correcting evaluation loop, inspired by the top-tier **Agentic "Reflexion" Architecture**, without forcing you to refactor your codebase.
+**FactLite** is a production-ready, feather-light Dart/Flutter package designed to solve this exact problem. It enhances your existing LLM calls with an automated, self-correcting evaluation loop, inspired by the top-tier **Agentic "Reflexion" Architecture**, without forcing you to refactor your codebase.
 
 ## 🚀 Key Features
 
-*   **✨ Zero-Intrusion:** Add fact-checking and self-correction to any function with a single `@verify` decorator. No need to rewrite your existing logic.
-*   **⚡️ Async-Native & Concurrency Safe:** Built from the ground up to support `async/await`. The evaluation process runs in a separate thread to prevent blocking your main event loop, making it perfect for high-performance web backends like FastAPI.
+*   **✨ Zero-Intrusion:** Add fact-checking and self-correction with minimal code changes. No need to rewrite your existing logic.
+*   **⚡️ Async-Native:** Built from the ground up to support `async/await`.
 *   **🤖 Agentic Workflow:** Implements an automated **Generate -> Evaluate -> Reflect** loop. Your LLM is forced to critique and iteratively improve its own answers until they meet your quality standards.
 *   **🧩 Extensible & Pluggable:**
     *   Bring your own judge! Use the built-in `LLMJudge` or create your own validation logic (e.g., regex, database lookups, type checks) with `CustomJudge`.
-    *   Define your own failure policies. Raise an error, return a safe message, or trigger a webhook with custom `FallbackAction`.
-*   **🌐 Framework Agnostic:** FactLite doesn't care how you call your LLM. Whether you're using the `openai` SDK, `anthropic`'s client, or a simple `requests.post` call to a local model, as long as it's a Python function that returns a string, FactLite can safeguard it.
+    *   Define your own failure policies. Raise an error, return a safe message, or implement custom `FallbackAction`.
+*   **🌐 Framework Agnostic:** Works with any LLM provider — OpenAI, Anthropic, DeepSeek, local models, or any OpenAI-compatible API.
 
 ## 📦 Installation
 
+```yaml
+# pubspec.yaml
+dependencies:
+  factlite: ^0.0.1
+```
+
 ```bash
-pip install FactLite
+flutter pub get
 ```
 
 ## 🎯 Quick Start: The "Aha!" Moment
 
-See how easy it is to upgrade your existing code from a simple API call to a self-correcting agent.
+See how easy it is to add self-correcting capabilities to your existing LLM calls.
 
 **Before: A standard, unprotected LLM call.**
 
-```python
-import openai
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-client = openai.OpenAI(api_key="your-key")
+Future<String> askAI(String question) async {
+  final response = await http.post(
+    Uri.parse('https://api.openai.com/v1/chat/completions'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer your-key',
+    },
+    body: jsonEncode({
+      'model': 'gpt-3.5-turbo',
+      'messages': [{'role': 'user', 'content': question}],
+    }),
+  );
+  final body = jsonDecode(response.body);
+  return body['choices'][0]['message']['content'];
+}
 
-def ask_ai(question: str):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": question}]
-    )
-    return response.choices[0].message.content
-
-# This might return a factually incorrect answer, and you'd never know.
-print(ask_ai("Was Li Bai an emperor in the Song Dynasty?"))
+// This might return a factually incorrect answer, and you'd never know.
+void main() async {
+  print(await askAI('Was Li Bai an emperor in the Song Dynasty?'));
+}
 ```
 
-**After: Protected by FactLite with a single line of code.**
+**After: Protected by FactLite.**
 
-```python
-import openai
-from FactLite import verify, rules, action
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:factlite/factlite.dart';
 
-client = openai.OpenAI(api_key="your-key")
+Future<String> askAI(String question) async {
+  final response = await http.post(
+    Uri.parse('https://api.openai.com/v1/chat/completions'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer your-key',
+    },
+    body: jsonEncode({
+      'model': 'gpt-3.5-turbo',
+      'messages': [{'role': 'user', 'content': question}],
+    }),
+  );
+  final body = jsonDecode(response.body);
+  return body['choices'][0]['message']['content'];
+}
 
-# Configure a powerful judge and your API key
-config = verify.config(
-    rule=rules.LLMJudge(model="gpt-4o-mini", api_key="your-key"),
-    max_retries=1
-)
+void main() async {
+  // Configure a judge
+  final config = FactLiteConfig(
+    rule: LLMJudge(apiKey: 'your-key', model: 'gpt-4o-mini'),
+    maxRetries: 1,
+    onFail: ReturnBest(),
+  );
 
-@verify(config=config, user_prompt="question") # Just add this decorator!
-def ask_ai(question: str):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": question}]
-    )
-    return response.choices[0].message.content
+  // Call verify — that's it!
+  final result = await verify(
+    prompt: 'Was Li Bai an emperor in the Song Dynasty?',
+    generator: askAI,
+    config: config,
+  );
 
-# Now, the function will automatically correct itself before returning.
-print(ask_ai("Was Li Bai an emperor in the Song Dynasty?"))
+  print(result);
+}
 ```
 
 **What you'll see in your console:**
 
 ```text
-10:30:05 - [FactLite] - Generating initial answer...
-10:30:08 - [FactLite] - Evaluating answer quality...
-10:30:12 - [FactLite] - ❌ Hallucination or error detected: The answer incorrectly states that Li Bai was related to the Song Dynasty. He was a poet from the Tang Dynasty.
-10:30:12 - [FactLite] - Triggering reflection and rewrite, attempt 1...
-10:30:16 - [FactLite] - Evaluating answer quality...
-10:30:19 - [FactLite] - ✅ Correction successful, returning the verified answer!
-
-No, Li Bai was not an emperor in the Song Dynasty. He was a renowned poet who lived during the Tang Dynasty (701-762 AD).
+[FactLite] Generating initial answer...
+[FactLite] Evaluating answer quality...
+[FactLite] ❌ Hallucination or error detected: The answer incorrectly states...
+[FactLite] Triggering reflection and rewrite, attempt 1...
+[FactLite] Evaluating answer quality...
+[FactLite] ✅ Correction successful, returning the verified answer!
 ```
 
 ## 💡 Advanced Usage
 
-### Async Support
+### VerifiedGenerator
 
-FactLite automatically detects and supports `async` functions.
+Use `VerifiedGenerator` to create a reusable verified function, perfect for binding a configuration to a generator once and using it throughout your app.
 
-```python
-from openai import AsyncOpenAI
+```dart
+final verifiedAsk = VerifiedGenerator(
+  config: FactLiteConfig(
+    rule: LLMJudge(apiKey: 'your-key', model: 'gpt-4o-mini'),
+    maxRetries: 2,
+  ),
+  generator: askAI,
+);
 
-async_client = AsyncOpenAI(api_key="your-key")
-
-@verify(config=config, user_prompt="question")
-async def ask_ai_async(question: str):
-    response = await async_client.chat.completions.create(...)
-    return response.choices[0].message.content
-
-# Run it
-import asyncio
-asyncio.run(ask_ai_async("Tell me about the Tang Dynasty."))
+// Use it like a function
+final result = await verifiedAsk('Tell me about the Tang Dynasty.');
+print(result);
 ```
 
 ### Custom Rules (`CustomJudge`)
 
 Go beyond LLM-based checks. Enforce any local business logic you can imagine.
 
-```python
-def company_policy_judge(prompt, answer):
-    # Rule 1: No short answers
-    if len(answer) < 50:
-        return {"is_pass": False, "feedback": "Answer is too short. Please be more detailed."}
-    # Rule 2: Don't mention competitors
-    if "Google" in answer:
-        return {"is_pass": False, "feedback": "Do not mention competitor names."}
-    return {"is_pass": True, "feedback": ""}
+```dart
+final judge = CustomJudge(
+  evalFunc: (String userPrompt, String answer) {
+    // Rule 1: No short answers
+    if (answer.length < 50) {
+      return {'is_pass': false, 'feedback': 'Answer is too short.'};
+    }
+    // Rule 2: Don't mention competitors
+    if (answer.contains('Google')) {
+      return {'is_pass': false, 'feedback': 'Do not mention competitor names.'};
+    }
+    return {'is_pass': true, 'feedback': ''};
+  },
+);
 
-@verify(rule=rules.CustomJudge(eval_func=company_policy_judge), user_prompt="prompt")
-def ask_support_bot(prompt: str):
-    # ... your LLM call
-    pass
+final result = await verify(
+  prompt: 'Tell me about our product.',
+  generator: askAI,
+  rule: judge,
+);
+```
+
+`CustomJudge` also supports async evaluation functions:
+
+```dart
+final asyncJudge = CustomJudge(
+  evalFunc: (String userPrompt, String answer) async {
+    // e.g., check against a database
+    final isValid = await checkDatabase(answer);
+    return {
+      'is_pass': isValid,
+      'feedback': isValid ? '' : 'Answer not found in verified database.',
+    };
+  },
+);
 ```
 
 ### Custom Failure Actions (`FallbackAction`)
 
 Decide exactly what happens when an answer fails all retries.
 
-```python
-from FactLite import action
+```dart
+// Return a safe message
+final result = await verify(
+  prompt: 'Sensitive question',
+  generator: askAI,
+  rule: myRule,
+  onFail: ReturnSafeMessage(safeMessage: 'Sorry, I cannot answer that.'),
+);
 
-@verify(
-    ...,
-    on_fail=action.ReturnSafeMessage("I'm sorry, I cannot provide a confident answer to that question at the moment.")
-)
-def ask_sensitive_question(...):
-    pass
+// Raise an error (throws FactLiteVerificationException)
+final result = await verify(
+  prompt: 'Critical question',
+  generator: askAI,
+  rule: myRule,
+  onFail: RaiseError(),
+);
 
-@verify(..., on_fail=action.RaiseError())
-def ask_critical_question(...):
-    pass
+// Return the last answer despite failure (default behavior)
+final result = await verify(
+  prompt: 'General question',
+  generator: askAI,
+  rule: myRule,
+  onFail: ReturnBest(),
+);
+```
+
+You can also implement your own `FallbackAction`:
+
+```dart
+class LogAndReturnAction extends FallbackAction {
+  @override
+  Future<String> execute({
+    required String prompt,
+    required String lastAnswer,
+    required String feedback,
+  }) async {
+    // Log to your analytics service
+    await analyticsService.logFailure(prompt, feedback);
+    return lastAnswer;
+  }
+}
 ```
 
 ## 🛠️ How It Works
 
-FactLite's `@verify` decorator wraps your function in a simple yet powerful control loop:
+FactLite wraps your LLM call in a simple yet powerful control loop:
 
-1.  **Generate**: Your original function is called to produce an initial draft.
+1.  **Generate**: Your generator function is called to produce an initial draft.
 2.  **Evaluate**: The configured `rule` (e.g., `LLMJudge`) is invoked to assess the draft.
 3.  **Reflect & Retry**:
-    *   If the evaluation passes, the answer is returned to the user.
-    *   If it fails, the feedback is combined with the original prompt to create a "reflection prompt," forcing the LLM to correct its mistake. The process repeats from Step 1 until `max_retries` is reached.
-4.  **Fallback**: If all retries fail, the configured `on_fail` action is executed.
+    *   If the evaluation passes, the answer is returned immediately.
+    *   If it fails, the feedback is combined with the original prompt to create a "reflection prompt," forcing the LLM to correct its mistake. The process repeats from Step 1 until `maxRetries` is reached.
+4.  **Fallback**: If all retries fail, the configured `onFail` action is executed.
+
+## 📋 API Reference
+
+### `verify()`
+
+The core function for verified LLM calls.
+
+| Parameter   | Type              | Required | Description                                      |
+|-------------|-------------------|----------|--------------------------------------------------|
+| `prompt`    | `String`          | ✅       | The original user question                       |
+| `generator` | `LlmGenerator`    | ✅       | Async function: `(String) => Future<String>`     |
+| `rule`      | `BaseRule`         | ❌*      | The judge to evaluate answers                    |
+| `maxRetries`| `int`              | ❌       | Max retry attempts (default: 2)                  |
+| `onFail`    | `FallbackAction`   | ❌       | Fallback strategy (default: `ReturnBest()`)      |
+| `config`    | `FactLiteConfig`   | ❌*      | Config object (overrides individual params)      |
+
+*Either `rule` or `config` must be provided.
+
+### Classes
+
+| Class                          | Description                                           |
+|--------------------------------|-------------------------------------------------------|
+| `LLMJudge`                    | Uses an OpenAI-compatible LLM API to evaluate answers |
+| `CustomJudge`                  | Uses a custom function for evaluation                 |
+| `FactLiteConfig`               | Groups rule, retries, and fallback into one object    |
+| `VerifiedGenerator`            | Reusable wrapper binding config to a generator        |
+| `ReturnBest`                   | Returns the last answer despite failure               |
+| `RaiseError`                   | Throws `FactLiteVerificationException`                |
+| `ReturnSafeMessage`            | Returns a configurable safe message                   |
+| `EvaluationResult`             | Result of a rule evaluation (`isPass`, `feedback`)    |
+| `FactLiteVerificationException`| Exception thrown by `RaiseError`                      |
 
 ## 🤝 Contributing
 
