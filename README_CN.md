@@ -6,7 +6,7 @@
 
 [![PyPI 版本](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-310/)
 
 ---
 
@@ -131,6 +131,32 @@ def ask_support_bot(prompt: str):
     # ... 你的 LLM 调用逻辑
     pass
 ```
+
+### 联网增强验证 (`Web_LLMJudge`)
+
+利用网络搜索来验证答案是否符合最新信息，非常适合时效性强或快速变化的话题。
+
+```python
+@verify(
+    rule=rules.Web_LLMJudge(
+        model="gpt-4o-mini",
+        max_results=3,  # 使用的搜索结果数量
+        backend="duckduckgo"  # 搜索后端
+    ),
+    user_prompt="question"
+)
+def ask_ai_about_current_events(question: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**Web_LLMJudge 参数说明：**
+- `model`：用于评估的 OpenAI 模型
+- `max_results`：使用的搜索结果数量（默认：3）
+- `backend`：搜索后端，支持 "duckduckgo"、"bing"、"google"（默认："duckduckgo"）
+- `proxy`：可选的搜索代理
+- `api_key`：可选的 OpenAI API 密钥（默认为全局 `openai.api_key`）
+- `base_url`：可选的 OpenAI API 基础 URL
 
 ### 自定义失败兜底操作 (`FallbackAction`)
 

@@ -4,23 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FactLite"
-version = "1.0.0"
+version = "1.1.0-r1"
 description = "A lightweight framework for fact-checking AI-generated content"
 readme = "README.md"
 authors = [
     { name = "SR思锐 团队", email = "srinternet@qq.com" },
 ]
-license = { file = "LICENSE" }
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "openai>=1.0.0",
+    "ddgs>=9.13.0",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/SRInternet-Studio/FactLite"
 "Issues" = "https://github.com/SRInternet-Studio/FactLite/issues"
+
+[tool.setuptools.packages.find]
+include = ["FactLite*"] 
+exclude = ["test_demo*"]

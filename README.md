@@ -6,7 +6,7 @@ English | [中文](README_CN.md)
 
 [![PyPI version](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-310/)
 
 ---
 
@@ -131,6 +131,32 @@ def ask_support_bot(prompt: str):
     # ... your LLM call
     pass
 ```
+
+### Web-Enhanced Verification (`Web_LLMJudge`)
+
+Leverage web search to verify answers against the latest information, perfect for time-sensitive or rapidly evolving topics.
+
+```python
+@verify(
+    rule=rules.Web_LLMJudge(
+        model="gpt-4o-mini",
+        max_results=3,  # Number of search results to use
+        backend="duckduckgo"  # Search backend
+    ),
+    user_prompt="question"
+)
+def ask_ai_about_current_events(question: str):
+    # ... your LLM call
+    pass
+```
+
+**Web_LLMJudge Parameters:**
+- `model`: The OpenAI model to use for evaluation
+- `max_results`: Number of search results to incorporate (default: 3)
+- `backend`: Search backend, supports "duckduckgo", "bing", "google" (default: "duckduckgo")
+- `proxy`: Optional proxy for web search
+- `api_key`: Optional OpenAI API key (defaults to global `openai.api_key`)
+- `base_url`: Optional OpenAI API base URL
 
 ### Custom Failure Actions (`FallbackAction`)
 

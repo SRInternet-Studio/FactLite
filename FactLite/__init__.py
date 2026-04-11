@@ -1,5 +1,5 @@
 from .core.actions import ReturnBest, RaiseError, ReturnSafeMessage, FallbackAction
-from .core.rules import BaseRule, LLMJudge, CustomJudge
+from .core.rules import BaseRule, LLMJudge, Web_LLMJudge, CustomJudge
 from .core.verify import verify
 
 # Export components
@@ -12,6 +12,7 @@ class Actions:
 class rules:
     BaseRule = BaseRule
     LLMJudge = LLMJudge
+    Web_LLMJudge = Web_LLMJudge
     CustomJudge = CustomJudge
 
 action = Actions()
