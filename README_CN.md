@@ -28,7 +28,10 @@
 ```yaml
 # pubspec.yaml
 dependencies:
-  factlite: ^0.0.1
+  factlite:
+    git:
+      url: https://github.com/SRInternet-Studio/FactLite.git
+      ref: flutter-package
 ```
 
 ```bash

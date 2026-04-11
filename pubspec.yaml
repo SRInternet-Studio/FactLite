@@ -1,8 +1,8 @@
 name: factlite
 description: "A feather-light Dart/Flutter framework for LLM fact-checking and self-correction. Give your LLM a 'System 2' brain."
 version: 1.0.1
-homepage: https://github.com/SRInternet-Studio/FactLite
-repository: https://github.com/SRInternet-Studio/FactLite
+homepage: https://github.com/SRInternet-Studio/FactLite/tree/flutter-package
+repository: https://github.com/SRInternet-Studio/FactLite/tree/flutter-package
 
 environment:
   sdk: ^3.11.4
