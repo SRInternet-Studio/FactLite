@@ -27,7 +27,7 @@
 ## 📦 安装
 
 ```bash
-pip install FactLite
+pip install FactLite==1.1.0.post1
 ```
 
 ## 🎯 快速上手：感受“灵光一现”的瞬间

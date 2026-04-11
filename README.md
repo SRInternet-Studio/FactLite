@@ -27,7 +27,7 @@ In the last mile of deploying Generative AI, **hallucination is the final boss**
 ## 📦 Installation
 
 ```bash
-pip install FactLite
+pip install FactLite==1.1.0.post1
 ```
 
 ## 🎯 Quick Start: The "Aha!" Moment
