@@ -104,6 +104,136 @@ JSON output:''';
   }
 }
 
+/// Type definition for a web search function.
+///
+/// Takes a search query string and returns a list of search result snippets.
+///
+/// This allows the user to use any web search provider or HTTP client of
+/// their choice (e.g., DuckDuckGo, Bing, Google, or a custom search API).
+///
+/// Example with a hypothetical search client:
+/// ```dart
+/// final webSearch = (String query) async {
+///   final results = await duckDuckGo.search(query, maxResults: 3);
+///   return results.map((r) => r.body).toList();
+/// };
+/// ```
+typedef WebSearchFunction = Future<List<String>> Function(String query);
+
+/// A judge that uses web search results to enhance LLM-based evaluation.
+///
+/// `WebLLMJudge` first searches the web for relevant information about the
+/// user's question, then uses an LLM to evaluate the answer against both
+/// the question and the search results. This is ideal for verifying
+/// time-sensitive or rapidly evolving topics.
+///
+/// Instead of managing HTTP requests or search APIs internally,
+/// `WebLLMJudge` accepts both a [ChatCompletionFunction] and a
+/// [WebSearchFunction] provided by the user.
+///
+/// Example:
+/// ```dart
+/// final judge = WebLLMJudge(
+///   chatCompletion: (messages) async {
+///     final response = await openai.chat.completions.create(
+///       model: 'gpt-4o-mini',
+///       messages: messages,
+///       responseFormat: {'type': 'json_object'},
+///     );
+///     return response.choices.first.message.content;
+///   },
+///   webSearch: (query) async {
+///     final results = await duckDuckGo.search(query, maxResults: 3);
+///     return results.map((r) => r.body).toList();
+///   },
+/// );
+/// ```
+class WebLLMJudge extends BaseRule {
+  /// The user-provided chat completion function.
+  final ChatCompletionFunction chatCompletion;
+
+  /// The user-provided web search function.
+  final WebSearchFunction webSearch;
+
+  /// Maximum number of search results to use for evaluation.
+  ///
+  /// Defaults to 3.
+  final int maxResults;
+
+  WebLLMJudge({
+    required this.chatCompletion,
+    required this.webSearch,
+    this.maxResults = 3,
+  });
+
+  @override
+  Future<EvaluationResult> evaluate(String userPrompt, String answer) async {
+    // Step 1: Web search
+    List<String> searchResults;
+    try {
+      searchResults = await webSearch(userPrompt);
+    } catch (e) {
+      final errorMessage = 'Error searching the web: $e';
+      _logger.severe(errorMessage);
+      return EvaluationResult(
+        isPass: false,
+        feedback: errorMessage,
+      );
+    }
+
+    if (searchResults.isEmpty) {
+      return const EvaluationResult(
+        isPass: false,
+        feedback: 'Can not find any relevant information on the web.',
+      );
+    }
+
+    // Take only maxResults
+    final results = searchResults.take(maxResults).toList();
+    final context = results.map((r) => '- $r').join('\n');
+
+    // Step 2: LLM evaluation with web context
+    final evaluationPrompt =
+        '''You are a fact-checking judge. Please ** use only the [web search] provided below ** to check if the [AI's answer] contains factual errors, fabricated years, or non-existent entities. Return a JSON object with two fields:
+- is_pass: boolean indicating if the response is factually correct
+- feedback: detailed criticism if is_pass is false, or empty string if true
+
+[web search]
+$context
+
+[User question]: $userPrompt
+[AI's answer]: $answer
+
+JSON output:''';
+
+    try {
+      final messages = [
+        {
+          'role': 'system',
+          'content': 'You are a fact-checking judge. Return only JSON output.',
+        },
+        {
+          'role': 'user',
+          'content': evaluationPrompt,
+        },
+      ];
+
+      final resultStr = await chatCompletion(messages);
+      final result = jsonDecode(resultStr) as Map<String, dynamic>;
+
+      return EvaluationResult.fromMap(result);
+    } catch (e) {
+      final errorMessage =
+          'WebLLMJudge evaluation failed: $e. Please check your chatCompletion function.';
+      _logger.severe(errorMessage);
+      return EvaluationResult(
+        isPass: false,
+        feedback: errorMessage,
+      );
+    }
+  }
+}
+
 /// Type definition for custom evaluation functions.
 ///
 /// The function should take [userPrompt] and [answer] as parameters

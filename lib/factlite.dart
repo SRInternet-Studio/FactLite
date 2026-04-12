@@ -42,7 +42,14 @@ export 'src/actions.dart'
 
 // Rules - Judge implementations
 export 'src/rules.dart'
-    show BaseRule, LLMJudge, CustomJudge, EvalFunction, ChatCompletionFunction;
+    show
+        BaseRule,
+        LLMJudge,
+        WebLLMJudge,
+        CustomJudge,
+        EvalFunction,
+        ChatCompletionFunction,
+        WebSearchFunction;
 
 // Config
 export 'src/config.dart' show FactLiteConfig;

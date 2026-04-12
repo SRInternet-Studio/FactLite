@@ -151,6 +151,43 @@ final result = await verifiedAsk('Tell me about the Tang Dynasty.');
 print(result);
 ```
 
+### Web-Enhanced Verification (`WebLLMJudge`)
+
+Leverage web search to verify answers against the latest information, perfect for time-sensitive or rapidly evolving topics.
+
+```dart
+// Provide your own web search implementation
+Future<List<String>> myWebSearch(String query) async {
+  // Use any search provider: DuckDuckGo, Bing, Google, etc.
+  final results = await duckDuckGo.search(query, maxResults: 3);
+  return results.map((r) => r.body).toList();
+}
+
+final config = FactLiteConfig(
+  rule: WebLLMJudge(
+    chatCompletion: chatCompletion,
+    webSearch: myWebSearch,
+    maxResults: 3, // Number of search results to use
+  ),
+  maxRetries: 1,
+  onFail: ReturnBest(),
+);
+
+final result = await verify(
+  prompt: 'What is the latest version of Flutter?',
+  generator: askAI,
+  config: config,
+);
+```
+
+**WebLLMJudge Parameters:**
+
+| Parameter        | Type                     | Required | Description                                           |
+|------------------|--------------------------|----------|-------------------------------------------------------|
+| `chatCompletion` | `ChatCompletionFunction` | ✅       | LLM chat completion function for evaluation           |
+| `webSearch`      | `WebSearchFunction`      | ✅       | Web search function: `(String) => Future<List<String>>`|
+| `maxResults`     | `int`                    | ❌       | Number of search results to use (default: 3)          |
+
 ### Custom Rules (`CustomJudge`)
 
 Go beyond LLM-based checks. Enforce any local business logic you can imagine.
@@ -272,6 +309,7 @@ The core function for verified LLM calls.
 | Class                          | Description                                           |
 |--------------------------------|-------------------------------------------------------|
 | `LLMJudge`                    | Accepts a user-provided `ChatCompletionFunction` to evaluate answers via any LLM |
+| `WebLLMJudge`                 | Web-enhanced judge using search results + LLM for verification |
 | `CustomJudge`                  | Uses a custom function for evaluation                 |
 | `FactLiteConfig`               | Groups rule, retries, and fallback into one object    |
 | `VerifiedGenerator`            | Reusable wrapper binding config to a generator        |

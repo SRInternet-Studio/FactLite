@@ -151,6 +151,43 @@ final result = await verifiedAsk('给我讲讲唐朝的历史。');
 print(result);
 ```
 
+### 联网增强验证 (`WebLLMJudge`)
+
+利用网络搜索来验证答案是否符合最新信息，非常适合时效性强或快速变化的话题。
+
+```dart
+// 提供你自己的网络搜索实现
+Future<List<String>> myWebSearch(String query) async {
+  // 使用任何搜索提供商：DuckDuckGo、Bing、Google 等
+  final results = await duckDuckGo.search(query, maxResults: 3);
+  return results.map((r) => r.body).toList();
+}
+
+final config = FactLiteConfig(
+  rule: WebLLMJudge(
+    chatCompletion: chatCompletion,
+    webSearch: myWebSearch,
+    maxResults: 3, // 使用的搜索结果数量
+  ),
+  maxRetries: 1,
+  onFail: ReturnBest(),
+);
+
+final result = await verify(
+  prompt: 'Flutter 的最新版本是什么？',
+  generator: askAI,
+  config: config,
+);
+```
+
+**WebLLMJudge 参数说明：**
+
+| 参数              | 类型                      | 必填   | 说明                                              |
+|------------------|--------------------------|--------|--------------------------------------------------|
+| `chatCompletion` | `ChatCompletionFunction` | ✅     | 用于评估的 LLM 聊天补全函数                          |
+| `webSearch`      | `WebSearchFunction`      | ✅     | 网络搜索函数：`(String) => Future<List<String>>`    |
+| `maxResults`     | `int`                    | ❌     | 使用的搜索结果数量（默认：3）                         |
+
 ### 自定义规则 (`CustomJudge`)
 
 除了基于 LLM 的检查，你还可以强制执行任何你能想到的本地业务逻辑。
@@ -272,6 +309,7 @@ FactLite 将你的 LLM 调用包装在一个简单而强大的控制循环中：
 | 类                              | 说明                                              |
 |--------------------------------|---------------------------------------------------|
 | `LLMJudge`                    | 接受用户提供的 `ChatCompletionFunction`，通过任何 LLM 评估答案 |
+| `WebLLMJudge`                 | 联网增强"裁判"，使用搜索结果 + LLM 进行验证              |
 | `CustomJudge`                  | 使用自定义函数进行评估                                |
 | `FactLiteConfig`               | 将规则、重试次数和兜底策略组合为一个配置对象              |
 | `VerifiedGenerator`            | 可复用的包装器，将配置绑定到生成器函数                    |
