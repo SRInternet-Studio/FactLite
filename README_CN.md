@@ -194,6 +194,8 @@ FactLite 的 `@verify` 装饰器将你的函数包装在一个简单而强大的
 
 欢迎参与贡献！无论是提交一个新的规则、一个新的兜底操作，还是一个性能改进，都欢迎你提出 Issue 或提交 Pull Request。
 
+本项目的封面设计由 [@apanzinc](https://github.com/apanzinc) 提供支持。
+
 ## 📄 许可证
 
 本项目基于 MIT 许可证。详情请参阅 `LICENSE` 文件。
