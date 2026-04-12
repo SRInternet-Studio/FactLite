@@ -194,6 +194,8 @@ FactLite's `@verify` decorator wraps your function in a simple yet powerful cont
 
 Contributions are welcome! Whether it's a new rule, a new fallback action, or a performance improvement, feel free to open an issue or submit a pull request.
 
+The cover design for this project was supported by [@apanzinc](https://github.com/apanzinc).
+
 ## 📄 License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
