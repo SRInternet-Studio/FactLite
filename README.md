@@ -4,6 +4,8 @@ English | [中文](README_CN.md)
 
 **Give Your LLM a "System 2" Brain with a Single Decorator.**
 
+<img width="1269" height="540" alt="Poster" src="https://github.com/user-attachments/assets/14d4fb29-4007-40bd-9c8e-83aacd04988f" />
+
 [![PyPI version](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -322,6 +324,8 @@ FactLite's `@verify` decorator wraps your function in a simple yet powerful cont
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's a new rule, a new fallback action, or a performance improvement, feel free to open an issue or submit a pull request.
+
+The cover design for this project was supported by [@apanzinc](https://github.com/apanzinc).
 
 ## 📄 License
 

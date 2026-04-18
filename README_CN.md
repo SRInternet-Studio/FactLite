@@ -4,6 +4,8 @@
 
 **只需一个装饰器，为你的大语言模型（LLM）装上“System 2”大脑。**
 
+<img width="1269" height="540" alt="Poster" src="https://github.com/user-attachments/assets/14d4fb29-4007-40bd-9c8e-83aacd04988f" />
+
 [![PyPI 版本](https://badge.fury.io/py/FactLite.svg)](https://badge.fury.io/py/FactLite)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -322,6 +324,8 @@ FactLite 的 `@verify` 装饰器将你的函数包装在一个简单而强大的
 ## 🤝 贡献
 
 欢迎参与贡献！无论是提交一个新的规则、一个新的兜底操作，还是一个性能改进，都欢迎你提出 Issue 或提交 Pull Request。
+
+本项目的封面设计由 [@apanzinc](https://github.com/apanzinc) 提供支持。
 
 ## 📄 许可证
 
