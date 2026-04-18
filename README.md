@@ -26,7 +26,8 @@ In the last mile of deploying Generative AI, **hallucination is the final boss**
 *   **🌐 Framework Agnostic:** Works with any LLM provider — OpenAI, Anthropic, DeepSeek, local models, or any OpenAI-compatible API.
 
 ## 📦 Installation
-
+#### Now we have the easy way to install: `flutter pub add factlite`
+#### The other way
 ```yaml
 # pubspec.yaml
 dependencies:

@@ -27,6 +27,8 @@
 
 ## 📦 安装
 
+#### Now we have the easy way to install: `flutter pub add factlite`
+#### The other way
 ```yaml
 # pubspec.yaml
 dependencies:
