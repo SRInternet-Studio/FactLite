@@ -30,18 +30,90 @@ def _update_prompt(current_prompt, arg_index, args, kwargs, user_prompt):
 
 def _generate_reflection_prompt(prompt_value, best_answer, feedback):
     """Generate reflection prompt"""
-    return f"""[System Prompt: You need to self-reflect and self-correct]
-Original user question: {prompt_value}
-Your previous answer: {best_answer}
-Judge's feedback: {feedback}
-Please take a deep breath, strictly correct the errors mentioned above, and provide the final perfect answer."""
+    return f"""[CRITICAL SYSTEM DIRECTIVE: SELF-CORRECTION REQUIRED]
+The user asked: "{prompt_value}"
 
-def verify(user_prompt=None, rule=None, max_retries=2, on_fail=ReturnBest(), config=None):
+Your previous generated draft:
+---
+{best_answer}
+---
+
+The Automated Validator rejected your draft with the following fatal error:
+🚨 **{feedback}** 🚨
+
+**YOUR TASK**:
+You must rewrite the draft to completely resolve the error above. 
+- If words are banned, use clever synonyms.
+- If it's too long, violently delete non-essential sentences.
+- If JSON is broken, output ONLY raw valid JSON without any markdown or explanations.
+
+Take a deep breath and provide the flawless final answer below:"""
+
+async def _execute_rules_async(rules, prompt_value, answer):
+    """Execute a list of rules sequentially asynchronously
+    
+    Args:
+        rules: A single BaseRule or list of BaseRule objects
+        prompt_value: The original user prompt
+        answer: The model's answer
+        
+    Returns:
+        tuple: (is_pass, feedback, no_retry)
+    """
+    # Convert single rule to list
+    rule_list = rules if isinstance(rules, list) else [rules]
+    
+    for i, rule in enumerate(rule_list):
+        logger.info(f"Executing rule {i+1}/{len(rule_list)}...")
+        if inspect.iscoroutinefunction(rule.evaluate):
+            evaluation_result = await rule.evaluate(prompt_value, answer)
+        else:
+            evaluation_result = await asyncio.to_thread(rule.evaluate, prompt_value, answer)
+        
+        is_pass = evaluation_result.get("is_pass", False)
+        feedback = evaluation_result.get("feedback", "")
+        no_retry = evaluation_result.get("no_retry", False)
+        
+        if not is_pass:
+            logger.error(f"❌ Rule {i+1} failed: {feedback}")
+            return (is_pass, feedback, no_retry)
+    
+    return (True, "", False)
+
+def _execute_rules_sync(rules, prompt_value, answer):
+    """Execute a list of rules sequentially synchronously
+    
+    Args:
+        rules: A single BaseRule or list of BaseRule objects
+        prompt_value: The original user prompt
+        answer: The model's answer
+        
+    Returns:
+        tuple: (is_pass, feedback, no_retry)
+    """
+    # Convert single rule to list
+    rule_list = rules if isinstance(rules, list) else [rules]
+    
+    for i, rule in enumerate(rule_list):
+        logger.info(f"Executing rule {i+1}/{len(rule_list)}...")
+        evaluation_result = rule.evaluate(prompt_value, answer)
+        
+        is_pass = evaluation_result.get("is_pass", False)
+        feedback = evaluation_result.get("feedback", "")
+        no_retry = evaluation_result.get("no_retry", False)
+        
+        if not is_pass:
+            logger.error(f"❌ Rule {i+1} failed: {feedback}")
+            return (is_pass, feedback, no_retry)
+    
+    return (True, "", False)
+
+def verify(user_prompt=None, rules=None, max_retries=2, on_fail=ReturnBest(), config=None):
     # Handle config parameter
     if config:
         max_retries = config.max_retries
         on_fail = config.on_fail
-        rule = config.rule
+        rules = config.rules
     
     def decorator(func):
         # Check if the function is async
@@ -67,9 +139,7 @@ def verify(user_prompt=None, rule=None, max_retries=2, on_fail=ReturnBest(), con
                     best_answer = answer
                     
                     logger.info("Evaluating answer quality...")
-                    evaluation_result = await asyncio.to_thread(rule.evaluate, prompt_value, answer)
-                    is_pass = evaluation_result.get("is_pass", False)
-                    feedback = evaluation_result.get("feedback", "")
+                    is_pass, feedback, no_retry = await _execute_rules_async(rules, prompt_value, answer)
                     
                     if is_pass:
                         if retry_count > 0:
@@ -78,7 +148,9 @@ def verify(user_prompt=None, rule=None, max_retries=2, on_fail=ReturnBest(), con
                             logger.info("✅ Initial draft is flawless, passing through!")
                         return answer
                     
-                    logger.error(f"❌ Hallucination or error detected: {feedback}")
+                    if no_retry:
+                        logger.warning("Validation error requires no retry, executing fallback strategy.")
+                        break
                     
                     current_prompt = _generate_reflection_prompt(prompt_value, best_answer, feedback)
                     retry_count += 1
@@ -118,9 +190,7 @@ def verify(user_prompt=None, rule=None, max_retries=2, on_fail=ReturnBest(), con
                     best_answer = answer
                     
                     logger.info("Evaluating answer quality...")
-                    evaluation_result = rule.evaluate(prompt_value, answer)
-                    is_pass = evaluation_result.get("is_pass", False)
-                    feedback = evaluation_result.get("feedback", "")
+                    is_pass, feedback, no_retry = _execute_rules_sync(rules, prompt_value, answer)
                     
                     if is_pass:
                         if retry_count > 0:
@@ -129,7 +199,9 @@ def verify(user_prompt=None, rule=None, max_retries=2, on_fail=ReturnBest(), con
                             logger.info("✅ Initial draft is flawless, passing through!")
                         return answer
                     
-                    logger.error(f"❌ Hallucination or error detected: {feedback}")
+                    if no_retry:
+                        logger.warning("Validation error requires no retry, executing fallback strategy.")
+                        break
                     
                     current_prompt = _generate_reflection_prompt(prompt_value, best_answer, feedback)
                     retry_count += 1

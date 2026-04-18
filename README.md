@@ -27,7 +27,7 @@ In the last mile of deploying Generative AI, **hallucination is the final boss**
 ## 📦 Installation
 
 ```bash
-pip install FactLite==1.1.0.post1
+pip install FactLite -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
 ## 🎯 Quick Start: The "Aha!" Moment
@@ -62,7 +62,7 @@ client = openai.OpenAI(api_key="your-key")
 
 # Configure a powerful judge and your API key
 config = verify.config(
-    rule=rules.LLMJudge(model="gpt-4o-mini", api_key="your-key"),
+    rules=rules.LLMJudge(model="gpt-4o-mini", api_key="your-key"),
     max_retries=1
 )
 
@@ -90,6 +90,101 @@ print(ask_ai("Was Li Bai an emperor in the Song Dynasty?"))
 
 No, Li Bai was not an emperor in the Song Dynasty. He was a renowned poet who lived during the Tang Dynasty (701-762 AD).
 ```
+
+## 📖 More Usage
+
+### Basic Validators
+
+#### Regex Validation (`RegexValidator`)
+
+Use regular expressions to enforce content rules, such as banning specific words or requiring certain patterns.
+
+```python
+@verify(
+    rules=rules.RegexValidator(
+        banned_words=["competitor", "rival", "Google"],
+        required_pattern=[r"our product"],
+        banned_words_file="path/to/banned_words.txt"
+    ),
+    user_prompt="prompt"
+)
+def product_promotion(prompt: str):
+    # ... your LLM call
+    pass
+```
+
+**RegexValidator Parameters:**
+- `banned_words`: List of words or phrases to ban
+- `required_pattern`: List of regular expression patterns that must be present
+- `banned_words_file`: Path to a TXT file containing banned words (one per line)
+
+#### Length Validation (`LengthValidator`)
+
+Ensure the AI response meets length requirements, with optional punctuation exclusion.
+
+```python
+@verify(
+    rules=rules.LengthValidator(
+        min_length=50,
+        max_length=500,
+        include_punctuation=True
+    ),
+    user_prompt="prompt"
+)
+def generate_response(prompt: str):
+    # ... your LLM call
+    pass
+```
+
+**LengthValidator Parameters:**
+- `min_length`: Minimum length of the answer
+- `max_length`: Maximum length of the answer
+- `include_punctuation`: Whether to include punctuation in length calculation (default: True)
+
+#### JSON Validation (`JSONValidator`)
+
+Ensure the LLM returns valid JSON with all required keys.
+
+```python
+@verify(
+    rules=rules.JSONValidator(
+        required_keys=["name", "price", "description"]
+    ),
+    user_prompt="prompt"
+)
+def generate_product_json(prompt: str):
+    # ... your LLM call
+    pass
+```
+
+**JSONValidator Parameters:**
+- `required_keys`: List of keys that must be present in the JSON output
+
+#### Content Moderation (`ModerationJudge`)
+
+Use OpenAI's Moderation API to detect unsafe content such as hate speech, violence, and adult content.
+
+```python
+@verify(
+    rules=rules.ModerationJudge(),
+    user_prompt="prompt"
+)
+def generate_content(prompt: str):
+    # ... your LLM call
+    pass
+```
+
+**ModerationJudge Parameters:**
+- `api_key`: OpenAI API key (defaults to global `openai.api_key`)
+
+**Detected Categories:**
+- `hate`: Content that expresses, incites, or promotes hate based on race, gender, ethnicity, religion, nationality, sexual orientation, disability, or caste
+- `hate/threatening`: Content that threatens violence against an individual or group
+- `self-harm`: Content that promotes or depicts suicide, self-injury, or eating disorders
+- `sexual`: Content that contains adult themes or sexual content
+- `sexual/minors`: Content that contains sexual content involving minors
+- `violence`: Content that depicts or promotes violence
+- `violence/graphic`: Content that depicts extreme or graphic violence
 
 ## 💡 Advanced Usage
 
@@ -126,7 +221,7 @@ def company_policy_judge(prompt, answer):
         return {"is_pass": False, "feedback": "Do not mention competitor names."}
     return {"is_pass": True, "feedback": ""}
 
-@verify(rule=rules.CustomJudge(eval_func=company_policy_judge), user_prompt="prompt")
+@verify(rules=rules.CustomJudge(eval_func=company_policy_judge), user_prompt="prompt")
 def ask_support_bot(prompt: str):
     # ... your LLM call
     pass
@@ -138,7 +233,7 @@ Leverage web search to verify answers against the latest information, perfect fo
 
 ```python
 @verify(
-    rule=rules.Web_LLMJudge(
+    rules=rules.Web_LLMJudge(
         model="gpt-4o-mini",
         max_results=3,  # Number of search results to use
         backend="duckduckgo"  # Search backend
@@ -157,6 +252,42 @@ def ask_ai_about_current_events(question: str):
 - `proxy`: Optional proxy for web search
 - `api_key`: Optional OpenAI API key (defaults to global `openai.api_key`)
 - `base_url`: Optional OpenAI API base URL
+
+### Rule Chaining
+
+Execute multiple validators sequentially to create complex validation workflows.
+
+```python
+@verify(
+    rules=[
+        rules.RegexValidator(
+            banned_words=["competitor", "rival"],
+            required_pattern=[r"our product"]
+        ),
+        rules.LengthValidator(
+            min_length=50,
+            max_length=500
+        ),
+        rules.ModerationJudge()
+    ],
+    user_prompt="prompt"
+)
+def generate_marketing_content(prompt: str):
+    # ... your LLM call
+    pass
+```
+
+**How Rule Chaining Works:**
+1. Validators are executed in the order they appear in the list
+2. If any validator fails, the chain stops immediately
+3. If a validator returns `no_retry=True`, the entire process stops without retries
+4. Only when all validators pass does the answer get returned
+
+**Benefits of Rule Chaining:**
+- **Efficiency**: Stop early if any validation fails
+- **Flexibility**: Combine different types of validations
+- **Modularity**: Reuse validators across different chains
+- **Clear Logic**: Easy to understand validation flow
 
 ### Custom Failure Actions (`FallbackAction`)
 
@@ -182,7 +313,7 @@ def ask_critical_question(...):
 FactLite's `@verify` decorator wraps your function in a simple yet powerful control loop:
 
 1.  **Generate**: Your original function is called to produce an initial draft.
-2.  **Evaluate**: The configured `rule` (e.g., `LLMJudge`) is invoked to assess the draft.
+2.  **Evaluate**: The configured `rules` (e.g., `LLMJudge`) is invoked to assess the draft.
 3.  **Reflect & Retry**:
     *   If the evaluation passes, the answer is returned to the user.
     *   If it fails, the feedback is combined with the original prompt to create a "reflection prompt," forcing the LLM to correct its mistake. The process repeats from Step 1 until `max_retries` is reached.

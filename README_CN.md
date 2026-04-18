@@ -27,7 +27,7 @@
 ## 📦 安装
 
 ```bash
-pip install FactLite==1.1.0.post1
+pip install FactLite -i https://pypi.tuna.tsinghua.edu.cn/simple/
 ```
 
 ## 🎯 快速上手：感受“灵光一现”的瞬间
@@ -62,7 +62,7 @@ client = openai.OpenAI(api_key="你的密钥")
 
 # 配置一个强大的“裁判”和你的 API 密钥
 config = verify.config(
-    rule=rules.LLMJudge(model="gpt-4o-mini", api_key="你的密钥"), # 使用 gpt-4o-mini 作为“裁判”
+    rules=rules.LLMJudge(model="gpt-4o-mini", api_key="你的密钥"), # 使用 gpt-4o-mini 作为“裁判”
     max_retries=1 # 最多重试 1 次
 )
 
@@ -90,6 +90,101 @@ print(ask_ai("李白是宋朝的皇帝吗？"))
 
 不，李白不是宋朝的皇帝。他是一位生活在唐朝（公元701-762年）的著名诗人。
 ```
+
+## 📖 更多用法
+
+### 基础验证器
+
+#### 正则表达式验证 (`RegexValidator`)
+
+使用正则表达式来执行内容规则，例如禁止特定词汇或要求特定模式。
+
+```python
+@verify(
+    rules=rules.RegexValidator(
+        banned_words=["竞品", "竞争对手", "Google"],
+        required_pattern=[r"我们的产品"],
+        banned_words_file="path/to/banned_words.txt"
+    ),
+    user_prompt="prompt"
+)
+def product_promotion(prompt: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**RegexValidator 参数说明：**
+- `banned_words`：要禁止的词汇或短语列表
+- `required_pattern`：必须存在的正则表达式模式列表
+- `banned_words_file`：包含禁止词汇的 TXT 文件路径（每行一个词汇）
+
+#### 长度验证 (`LengthValidator`)
+
+确保 AI 回复符合长度要求，可选择是否包含标点符号。
+
+```python
+@verify(
+    rules=rules.LengthValidator(
+        min_length=50,
+        max_length=500,
+        include_punctuation=True
+    ),
+    user_prompt="prompt"
+)
+def generate_response(prompt: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**LengthValidator 参数说明：**
+- `min_length`：回复的最小长度
+- `max_length`：回复的最大长度
+- `include_punctuation`：是否在长度计算中包含标点符号（默认：True）
+
+#### JSON 验证 (`JSONValidator`)
+
+确保 LLM 返回有效的 JSON 格式，并且包含所有必要的键。
+
+```python
+@verify(
+    rules=rules.JSONValidator(
+        required_keys=["name", "price", "description"]
+    ),
+    user_prompt="prompt"
+)
+def generate_product_json(prompt: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**JSONValidator 参数说明：**
+- `required_keys`：JSON 输出中必须存在的键列表
+
+#### 内容审核 (`ModerationJudge`)
+
+使用 OpenAI 的 Moderation API 检测不安全内容，如仇恨言论、暴力和成人内容。
+
+```python
+@verify(
+    rules=rules.ModerationJudge(),
+    user_prompt="prompt"
+)
+def generate_content(prompt: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**ModerationJudge 参数说明：**
+- `api_key`：OpenAI API 密钥（默认为全局 `openai.api_key`）
+
+**检测类别：**
+- `hate`：表达、煽动或促进基于种族、性别、种族、宗教、国籍、性取向、残疾或种姓的仇恨内容
+- `hate/threatening`：威胁对个人或群体使用暴力的内容
+- `self-harm`：促进或描述自杀、自残或饮食障碍的内容
+- `sexual`：包含成人主题或性内容的内容
+- `sexual/minors`：包含涉及未成年人的性内容
+- `violence`：描述或促进暴力的内容
+- `violence/graphic`：描述极端或图形暴力的内容
 
 ## 💡 高级用法
 
@@ -126,7 +221,7 @@ def company_policy_judge(prompt, answer):
         return {"is_pass": False, "feedback": "请不要提及竞争对手的名字。"}
     return {"is_pass": True, "feedback": ""}
 
-@verify(rule=rules.CustomJudge(eval_func=company_policy_judge), user_prompt="prompt")
+@verify(rules=rules.CustomJudge(eval_func=company_policy_judge), user_prompt="prompt")
 def ask_support_bot(prompt: str):
     # ... 你的 LLM 调用逻辑
     pass
@@ -138,7 +233,7 @@ def ask_support_bot(prompt: str):
 
 ```python
 @verify(
-    rule=rules.Web_LLMJudge(
+    rules=rules.Web_LLMJudge(
         model="gpt-4o-mini",
         max_results=3,  # 使用的搜索结果数量
         backend="duckduckgo"  # 搜索后端
@@ -157,6 +252,42 @@ def ask_ai_about_current_events(question: str):
 - `proxy`：可选的搜索代理
 - `api_key`：可选的 OpenAI API 密钥（默认为全局 `openai.api_key`）
 - `base_url`：可选的 OpenAI API 基础 URL
+
+### 规则链（Rule Chaining）
+
+顺序执行多个验证器，创建复杂的验证工作流程。
+
+```python
+@verify(
+    rules=[
+        rules.RegexValidator(
+            banned_words=["竞品", "竞争对手"],
+            required_pattern=[r"我们的产品"]
+        ),
+        rules.LengthValidator(
+            min_length=50,
+            max_length=500
+        ),
+        rules.ModerationJudge()
+    ],
+    user_prompt="prompt"
+)
+def generate_marketing_content(prompt: str):
+    # ... 你的 LLM 调用逻辑
+    pass
+```
+
+**规则链工作原理：**
+1. 验证器按照列表中的顺序执行
+2. 如果任何一个验证器失败，链条立即停止
+3. 如果一个验证器返回 `no_retry=True`，整个过程停止，不进行重试
+4. 只有当所有验证器都通过时，才返回答案
+
+**规则链的优势：**
+- **效率**：如果任何验证失败，提前停止
+- **灵活性**：组合不同类型的验证
+- **模块化**：在不同链条中重用验证器
+- **逻辑清晰**：易于理解的验证流程
 
 ### 自定义失败兜底操作 (`FallbackAction`)
 
@@ -182,7 +313,7 @@ def ask_critical_question(...):
 FactLite 的 `@verify` 装饰器将你的函数包装在一个简单而强大的控制循环中：
 
 1.  **生成 (Generate)**: 调用你的原始函数以生成一个初步的答案草稿。
-2.  **评估 (Evaluate)**: 调用配置好的 `rule` (例如 `LLMJudge`) 来评估草稿的质量。
+2.  **评估 (Evaluate)**: 调用配置好的 `rules` (例如 `LLMJudge`) 来评估草稿的质量。
 3.  **反思与重试 (Reflect & Retry)**:
     *   如果评估通过，答案将直接返回给用户。
     *   如果评估失败，反馈意见会与原始提示词结合，形成一个“反思提示词”，迫使 LLM 纠正自己的错误。然后从第 1 步重新开始，直到达到 `max_retries` 上限。
