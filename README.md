@@ -4,6 +4,8 @@ English | [中文](README_CN.md)
 
 **Give Your LLM a "System 2" Brain with a Simple Function Wrapper.**
 
+<img width="1269" height="540" alt="Poster" src="https://github.com/user-attachments/assets/14d4fb29-4007-40bd-9c8e-83aacd04988f" />
+
 [![pub package](https://img.shields.io/pub/v/factlite.svg)](https://pub.dev/packages/factlite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -322,6 +324,8 @@ The core function for verified LLM calls.
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's a new rule, a new fallback action, or a performance improvement, feel free to open an issue or submit a pull request.
+
+The cover design for this project was supported by [@apanzinc](https://github.com/apanzinc).
 
 ## 📄 License
 

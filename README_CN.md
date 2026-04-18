@@ -4,6 +4,8 @@
 
 **只需几行代码，为你的大语言模型（LLM）装上"System 2"大脑。**
 
+<img width="1269" height="540" alt="Poster" src="https://github.com/user-attachments/assets/14d4fb29-4007-40bd-9c8e-83aacd04988f" />
+
 [![pub package](https://img.shields.io/pub/v/factlite.svg)](https://pub.dev/packages/factlite)
 [![许可证: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -322,6 +324,8 @@ FactLite 将你的 LLM 调用包装在一个简单而强大的控制循环中：
 ## 🤝 贡献
 
 欢迎参与贡献！无论是提交一个新的规则、一个新的兜底操作，还是一个性能改进，都欢迎你提出 Issue 或提交 Pull Request。
+
+本项目的封面设计由 [@apanzinc](https://github.com/apanzinc) 提供支持。
 
 ## 📄 许可证
 
