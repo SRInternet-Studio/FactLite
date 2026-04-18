@@ -1,6 +1,6 @@
 {
   "name": "factlite",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A lightweight framework for fact-checking AI-generated content.",
   "homepage": "https://github.com/SRInternet-Studio/FactLite/tree/nodejs-package",
   "bugs": {
