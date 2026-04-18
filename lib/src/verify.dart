@@ -12,7 +12,10 @@ typedef LlmGenerator = Future<String> Function(String prompt);
 
 /// Generate a reflection prompt for self-correction.
 String _generateReflectionPrompt(
-    String promptValue, String bestAnswer, String feedback) {
+  String promptValue,
+  String bestAnswer,
+  String feedback,
+) {
   return '''[System Prompt: You need to self-reflect and self-correct]
 Original user question: $promptValue
 Your previous answer: $bestAnswer
@@ -61,7 +64,8 @@ Future<String> verify({
 
   if (effectiveRule == null) {
     throw ArgumentError(
-        'A rule must be provided either directly or via a FactLiteConfig.');
+      'A rule must be provided either directly or via a FactLiteConfig.',
+    );
   }
 
   int retryCount = 0;
@@ -74,7 +78,8 @@ Future<String> verify({
       _logger.info('Generating initial answer...');
     } else {
       _logger.warning(
-          'Triggering reflection and rewrite, attempt $retryCount...');
+        'Triggering reflection and rewrite, attempt $retryCount...',
+      );
     }
 
     // Generate answer
@@ -83,8 +88,7 @@ Future<String> verify({
 
     // Evaluate answer quality
     _logger.info('Evaluating answer quality...');
-    final evaluationResult =
-        await effectiveRule.evaluate(prompt, answer);
+    final evaluationResult = await effectiveRule.evaluate(prompt, answer);
     final isPass = evaluationResult.isPass;
     feedback = evaluationResult.feedback;
 
@@ -100,8 +104,7 @@ Future<String> verify({
     _logger.severe('❌ Hallucination or error detected: $feedback');
 
     // Generate reflection prompt for retry
-    currentPrompt =
-        _generateReflectionPrompt(prompt, bestAnswer, feedback);
+    currentPrompt = _generateReflectionPrompt(prompt, bestAnswer, feedback);
     retryCount++;
   }
 
@@ -139,17 +142,10 @@ class VerifiedGenerator {
   /// The underlying LLM generator function.
   final LlmGenerator generator;
 
-  const VerifiedGenerator({
-    required this.config,
-    required this.generator,
-  });
+  const VerifiedGenerator({required this.config, required this.generator});
 
   /// Call the verified generator with the given [prompt].
   Future<String> call(String prompt) {
-    return verify(
-      prompt: prompt,
-      generator: generator,
-      config: config,
-    );
+    return verify(prompt: prompt, generator: generator, config: config);
   }
 }

@@ -64,7 +64,8 @@ void main() {
 
     test('ReturnSafeMessage returns custom safe message', () async {
       final action = ReturnSafeMessage(
-          safeMessage: 'Sorry, I cannot answer that.');
+        safeMessage: 'Sorry, I cannot answer that.',
+      );
       final result = await action.execute(
         prompt: 'test prompt',
         lastAnswer: 'test answer',
@@ -273,10 +274,7 @@ void main() {
 
     test('throws when no rule provided', () {
       expect(
-        () => verify(
-          prompt: 'test',
-          generator: (prompt) async => 'answer',
-        ),
+        () => verify(prompt: 'test', generator: (prompt) async => 'answer'),
         throwsA(isA<ArgumentError>()),
       );
     });

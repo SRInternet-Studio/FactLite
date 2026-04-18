@@ -36,8 +36,8 @@ abstract class BaseRule {
 ///   return response.choices.first.message.content;
 /// };
 /// ```
-typedef ChatCompletionFunction = Future<String> Function(
-    List<Map<String, String>> messages);
+typedef ChatCompletionFunction =
+    Future<String> Function(List<Map<String, String>> messages);
 
 /// A judge that uses an LLM to evaluate answers.
 ///
@@ -66,7 +66,8 @@ class LLMJudge extends BaseRule {
 
   @override
   Future<EvaluationResult> evaluate(String userPrompt, String answer) async {
-    final evaluationPrompt = '''You are a fact-checking judge. Evaluate the following response to determine if it accurately answers the user's question. Return a JSON object with two fields:
+    final evaluationPrompt =
+        '''You are a fact-checking judge. Evaluate the following response to determine if it accurately answers the user's question. Return a JSON object with two fields:
 - is_pass: boolean indicating if the response is factually correct
 - feedback: detailed criticism if is_pass is false, or empty string if true
 
@@ -79,13 +80,9 @@ JSON output:''';
       final messages = [
         {
           'role': 'system',
-          'content':
-              'You are a fact-checking judge. Return only JSON output.',
+          'content': 'You are a fact-checking judge. Return only JSON output.',
         },
-        {
-          'role': 'user',
-          'content': evaluationPrompt,
-        },
+        {'role': 'user', 'content': evaluationPrompt},
       ];
 
       final resultStr = await chatCompletion(messages);
@@ -96,10 +93,7 @@ JSON output:''';
       final errorMessage =
           'LLMJudge evaluation failed: $e. Please check your chatCompletion function.';
       _logger.severe(errorMessage);
-      return EvaluationResult(
-        isPass: false,
-        feedback: errorMessage,
-      );
+      return EvaluationResult(isPass: false, feedback: errorMessage);
     }
   }
 }
@@ -175,10 +169,7 @@ class WebLLMJudge extends BaseRule {
     } catch (e) {
       final errorMessage = 'Error searching the web: $e';
       _logger.severe(errorMessage);
-      return EvaluationResult(
-        isPass: false,
-        feedback: errorMessage,
-      );
+      return EvaluationResult(isPass: false, feedback: errorMessage);
     }
 
     if (searchResults.isEmpty) {
@@ -212,10 +203,7 @@ JSON output:''';
           'role': 'system',
           'content': 'You are a fact-checking judge. Return only JSON output.',
         },
-        {
-          'role': 'user',
-          'content': evaluationPrompt,
-        },
+        {'role': 'user', 'content': evaluationPrompt},
       ];
 
       final resultStr = await chatCompletion(messages);
@@ -226,10 +214,7 @@ JSON output:''';
       final errorMessage =
           'WebLLMJudge evaluation failed: $e. Please check your chatCompletion function.';
       _logger.severe(errorMessage);
-      return EvaluationResult(
-        isPass: false,
-        feedback: errorMessage,
-      );
+      return EvaluationResult(isPass: false, feedback: errorMessage);
     }
   }
 }
@@ -240,8 +225,8 @@ JSON output:''';
 /// and return a [Map] with `is_pass` (bool) and `feedback` (String) keys.
 ///
 /// The function can be synchronous or asynchronous (returning a [Future]).
-typedef EvalFunction = FutureOr<Map<String, dynamic>> Function(
-    String userPrompt, String answer);
+typedef EvalFunction =
+    FutureOr<Map<String, dynamic>> Function(String userPrompt, String answer);
 
 /// A judge that uses a custom evaluation function.
 ///

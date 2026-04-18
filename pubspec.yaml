@@ -23,6 +23,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+topics: [ai, fact-checking, self-correction, llm, system-2-thinking, network, tools]
 
   # To add assets to your package, add an assets section, like this:
   # assets:

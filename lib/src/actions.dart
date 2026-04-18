@@ -10,10 +10,7 @@ class EvaluationResult {
   /// Feedback from the judge. Empty string if passed.
   final String feedback;
 
-  const EvaluationResult({
-    required this.isPass,
-    this.feedback = '',
-  });
+  const EvaluationResult({required this.isPass, this.feedback = ''});
 
   factory EvaluationResult.fromMap(Map<String, dynamic> map) {
     return EvaluationResult(
@@ -23,10 +20,7 @@ class EvaluationResult {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'is_pass': isPass,
-      'feedback': feedback,
-    };
+    return {'is_pass': isPass, 'feedback': feedback};
   }
 
   @override
@@ -61,7 +55,8 @@ class ReturnBest extends FallbackAction {
     required String feedback,
   }) async {
     _logger.warning(
-        'Returning the last generated answer despite failing verification.');
+      'Returning the last generated answer despite failing verification.',
+    );
     return lastAnswer;
   }
 }
@@ -95,9 +90,7 @@ class ReturnSafeMessage extends FallbackAction {
   /// The safe message to return.
   final String safeMessage;
 
-  ReturnSafeMessage({
-    this.safeMessage = '抱歉，AI 暂时无法针对该问题给出有确切把握的回答。',
-  });
+  ReturnSafeMessage({this.safeMessage = '抱歉，AI 暂时无法针对该问题给出有确切把握的回答。'});
 
   @override
   Future<String> execute({
@@ -106,7 +99,8 @@ class ReturnSafeMessage extends FallbackAction {
     required String feedback,
   }) async {
     _logger.warning(
-        'Returning safe message. Original hallucination feedback: $feedback');
+      'Returning safe message. Original hallucination feedback: $feedback',
+    );
     return safeMessage;
   }
 }
