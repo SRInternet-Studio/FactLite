@@ -30,6 +30,8 @@
 
 ```bash
 npm install "git+https://github.com/SRInternet-Studio/FactLite.git#nodejs-package"
+#or
+npm install factlite
 ```
 
 ## 🎯 快速上手：感受"灵光一现"的瞬间

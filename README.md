@@ -30,6 +30,8 @@ In the last mile of deploying Generative AI, **hallucination is the final boss**
 
 ```bash
 npm install "git+https://github.com/SRInternet-Studio/FactLite.git#nodejs-package"
+#or
+npm install factlite
 ```
 
 ## 🎯 Quick Start: The "Aha!" Moment
