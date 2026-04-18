@@ -1,0 +1,43 @@
+{
+  "name": "factlite",
+  "version": "1.0.1",
+  "description": "A lightweight framework for fact-checking AI-generated content.",
+  "homepage": "https://github.com/SRInternet-Studio/FactLite/tree/nodejs-package",
+  "bugs": {
+    "url": "https://github.com/SRInternet-Studio/FactLite/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SRInternet-Studio/FactLite.git#nodejs-package"
+  },
+  "license": "MIT",
+  "author": "SRInternet <srinternet@qq.com> https://github.com/SRInternet",
+  "contributors": [
+    "Ariakage <neohutao233@icloud.com> (https://github.com/Ariakage)"
+  ],
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "src/"
+  ],
+  "scripts": {
+    "test": "node test_demo.js"
+  },
+  "keywords": [
+    "fact-checking",
+    "ai",
+    "llm",
+    "verification",
+    "factlite"
+  ],
+  "dependencies": {
+    "openai": ">=4.0.0",
+    "duck-duck-scrape": "^2.2.7"
+  }
+}
