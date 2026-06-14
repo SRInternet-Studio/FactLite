@@ -231,14 +231,16 @@ def ask_support_bot(prompt: str):
 
 ### 联网增强验证 (`Web_LLMJudge`)
 
-利用网络搜索来验证答案是否符合最新信息，非常适合时效性强或快速变化的话题。
+利用网络搜索来验证答案是否符合最新信息，非常适合时效性强或快速变化的话题。Web_LLMJudge 现已支持自动意图检测和语义重排序。
 
 ```python
 @verify(
     rules=rules.Web_LLMJudge(
         model="gpt-4o-mini",
-        max_results=3,  # 使用的搜索结果数量
-        backend="duckduckgo"  # 搜索后端
+        max_results=3,
+        backend="auto",
+        auto_route=True,  # 自动检测是否需要联网搜索
+        use_reranker=True  # 启用语义重排序
     ),
     user_prompt="question"
 )
@@ -250,10 +252,60 @@ def ask_ai_about_current_events(question: str):
 **Web_LLMJudge 参数说明：**
 - `model`：用于评估的 OpenAI 模型
 - `max_results`：使用的搜索结果数量（默认：3）
-- `backend`：搜索后端，支持 "duckduckgo"、"bing"、"google"（默认："duckduckgo"）
+- `backend`：搜索后端，支持 ("brave", "duckduckgo", "google", "grokipedia", "mojeek", "startpage", "wikipedia", "yandex")（默认："auto"）
 - `proxy`：可选的搜索代理
 - `api_key`：可选的 OpenAI API 密钥（默认为全局 `openai.api_key`）
 - `base_url`：可选的 OpenAI API 基础 URL
+- `auto_route`：根据查询意图自动判断是否需要联网搜索（默认：True）
+- `use_reranker`：启用基于 Sentence Transformers 的语义重排序（默认：True）
+- `reranker_model`：Sentence transformer 模型名称（默认："BAAI/bge-small-zh-v1.5"）
+- `score_threshold`：重排序结果的最小相似度阈值（默认：0.4）
+- `top_k`：包含的重排序结果数量（默认：3）
+
+### 联网增强生成 (`Augmenter`)
+
+在将提示词发送给 LLM 之前，使用网络搜索结果对其进行增强。Augmenter 会自动判断是否需要联网搜索，并使用相关信息丰富提示词。
+
+```python
+from FactLite import Augmenter
+
+# 初始化增强器
+augmenter = Augmenter(
+    model="gpt-4o-mini",
+    max_results=5,
+    top_k=3,
+    auto_route=True,
+    use_reranker=True
+)
+
+# 同步用法
+result = augmenter.augment("2024年中国GDP是多少？")
+print(result["augmented_prompt"])
+
+# 异步用法
+import asyncio
+result = asyncio.run(augmenter.augment_async("最近有什么新闻？"))
+```
+
+**Augmenter 参数说明：**
+- `model`：用于意图检测的 LLM 模型名称（默认："gpt-4o-mini"）
+- `api_key`：OpenAI API 密钥（默认为全局 `openai.api_key`）
+- `base_url`：OpenAI API 基础 URL
+- `max_results`：获取的最大搜索结果数量（默认：15）
+- `top_k`：包含在上下文中的重排序结果数量（默认：3）
+- `backend`：搜索后端，支持 ("brave", "duckduckgo", "google", "grokipedia", "mojeek", "startpage", "wikipedia", "yandex")（默认："auto"）
+- `proxy`：可选的代理服务器 URL
+- `reranker_model`：Sentence transformer 模型名称（默认："BAAI/bge-small-zh-v1.5"）
+- `use_reranker`：是否使用语义重排序（默认：True）
+- `auto_route`：是否自动判断是否需要搜索（默认：True）
+- `score_threshold`：重排序结果的最小相似度阈值（默认：0.4）
+
+**Augmenter 返回值：**
+- `augmented_prompt`：包含搜索结果的增强提示词
+- `original_prompt`：原始用户提示词
+- `search_performed`：是否执行了搜索（布尔值）
+- `search_results`：使用的搜索结果列表
+- `analysis`：查询分析元数据（needs_search, keywords, search_query）
 
 ### 规则链（Rule Chaining）
 

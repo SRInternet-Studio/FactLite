@@ -216,6 +216,35 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# Test files
+test_*.py
+tests/
+
 test_demo/
-test_demo_private.py
-test_version_1_2_0.py
+test_demo.py
+
+# Log files
+*.log
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Credentials and secrets
+.env
+*.env
+secrets/
+*.key
+
+# Model files
+*.bin
+*.pt
+*.pth
+*.safetensors
+
+# Cache directories
+.cache/
+sentence_transformers/
+
+FactLite_Paper.pdf

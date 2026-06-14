@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 import openai
-from ddgs import DDGS
-import ddgs.exceptions as ddgs_exceptions
 import json
 import inspect
+from .logging_config import logger
+from .web_utils._search_utils import generate_search_query, web_search, llm_needs_search
+from .web_utils._reranker import LocalReranker
 
 class BaseRule(ABC):
     """Base rules class for all judge implementations"""
@@ -21,37 +22,109 @@ class BaseRule(ABC):
         raise NotImplementedError("Subclasses must implement evaluate method")
 
 class Web_LLMJudge(BaseRule):
-    def __init__(self, model="gpt-4o-mini", api_key=None, base_url=None, max_results=3, proxy=None, backend="duckduckgo"):
-        """ A Web_LLM judge that uses the OpenAI API to evaluate the answer against the user prompt.
+    def __init__(self, model="gpt-4o-mini", api_key=None, base_url=None, max_results=15, 
+                 proxy=None, backend="auto", top_k=3, score_threshold=0.4, reranker_model="BAAI/bge-small-zh-v1.5", use_reranker=True, auto_route=True):
+        """
+        A Web_LLM judge that uses the OpenAI API to evaluate the answer against the user prompt.
         
         Args:
-            model (str): The OpenAI model to use for evaluation
-            api_key (str): The OpenAI API key to use for the OpenAI API
-            base_url (str): The OpenAI API base URL to use for the OpenAI API
-            max_results (int): The maximum number of web search results to use for evaluation, defaults to 3.
-            proxy (str): The proxy to use for the web search
-            backend (str): The backend to use for the web search. You can use "duckduckgo", "bing", "google", defaults to "duckduckgo"
+            model: The OpenAI model to use for evaluation
+            api_key: The OpenAI API key to use for the OpenAI API
+            base_url: The OpenAI API base URL to use for the OpenAI API
+            max_results: The maximum number of web search results to use for evaluation, defaults to 15
+            proxy: The proxy to use for the web search
+            backend: The backend to use for the web search. Supports "brave", "duckduckgo", "google", "grokipedia", "mojeek", "startpage", "wikipedia", "yandex", defaults to "auto"
+            top_k: Number of top reranked results to include in context, defaults to 3
+            score_threshold: Minimum similarity score for reranked results, defaults to 0.4
+            reranker_model: Sentence transformer model name for reranking, defaults to "BAAI/bge-small-zh-v1.5"
+            use_reranker: Whether to use local reranker for semantic similarity filtering, defaults to True
+            auto_route: Whether to use LLM to automatically determine if web search is needed, defaults to True
         """
         self.model = model
         self.backend = backend
         self.base_url = base_url
         self.max_results = max_results
         self.proxy = proxy
+        self.top_k = top_k
+        self.score_threshold = score_threshold
+        self.use_reranker = use_reranker
+        self.reranker_model = reranker_model
+        self.reranker = None
+        self.auto_route = auto_route
+        
+        # Initialize reranker if enabled
+        if self.use_reranker:
+            try:
+                self.reranker = LocalReranker(model_name=reranker_model)
+            except ImportError as e:
+                logger.warning(f"Failed to initialize reranker: {e}. Disabling reranker.")
+                self.use_reranker = False
+        
         api_key = api_key or openai.api_key
         self.client = openai.OpenAI(api_key=api_key, base_url=base_url) if hasattr(openai, "OpenAI") else openai
     
-    def evaluate(self, user_prompt, answer):
+    def evaluate(self, user_prompt: str, answer: str) -> dict:
+        """
+        Evaluate the AI's answer using web search and optional semantic reranking.
+        
+        Args:
+            user_prompt: The original user question
+            answer: The AI's answer to evaluate
+            
+        Returns:
+            Dictionary with "is_pass" (bool), "feedback" (str), and optionally "no_retry" (bool)
+        """
+        # Auto-route: Use LLM to determine if web search is needed
+        if self.auto_route:
+            needs_search = llm_needs_search(
+                user_query=user_prompt,
+                model=self.model,
+                api_key=self.client.api_key if hasattr(self.client, 'api_key') else None,
+                base_url=self.base_url
+            )
+            logger.info(f"Auto-route intent detection: {'needs search' if needs_search else 'no search needed'}")
+            
+            if not needs_search:
+                # Skip web search and return pass (no need for fact-checking)
+                return {"is_pass": True, "feedback": "Intent analysis indicates no web search needed for this query type."}
+        
         try:
-            with DDGS(proxy=self.proxy) if self.proxy else DDGS() as ddgs:
-                search_results = list(ddgs.text(query=user_prompt, backend=self.backend, max_results=self.max_results))
-        except ddgs_exceptions.DDGSException as e:
+            # Generate search query from user prompt using utility function
+            search_query = generate_search_query(user_prompt)
+            logger.info(f"Generated search query: {search_query}")
+            
+            # Perform web search using utility function
+            search_results = web_search(
+                query=search_query,
+                backend=self.backend,
+                max_results=self.max_results,
+                proxy=self.proxy
+            )
+        except Exception as e:
             return {"is_pass": False, "feedback": f"Error searching the web: {e}", "no_retry": True}
             
         if not search_results:
             return {"is_pass": False, "feedback": "Can not find any relevant information on the web."}
         
-        context = "\n".join([f"- {res['body']}" for res in search_results])
-        evaluation_prompt = f"""You are a fact-checking judge. Please ** use only the [web search] provided below ** to check if the [AI's answer] contains factual errors, fabricated years, or non-existent entities. Return a JSON object with two fields:
+        # Apply semantic reranking if enabled
+        if self.use_reranker and self.reranker:
+            reranked_results = self.reranker.rerank(
+                user_query=user_prompt,
+                search_results=search_results,
+                top_k=self.top_k,
+                score_threshold=self.score_threshold
+            )
+            logger.info(f"Reranking completed: {len(reranked_results)}/{len(search_results)} results passed")
+        else:
+            # Use original search results without reranking
+            reranked_results = [{"content": res.get("body", ""), "url": res.get("href", "")} for res in search_results[:self.top_k]]
+        
+        if not reranked_results:
+            return {"is_pass": False, "feedback": "No relevant information found after reranking."}
+        
+        # Create context from top results
+        context = "\n".join([f"- {result['content'][:500]}..." for result in reranked_results])
+        evaluation_prompt = f"""You are a fact-checking judge. Please **use only the [web search] provided below** to check if the [AI's answer] contains factual errors, fabricated years, or non-existent entities. Return a JSON object with two fields:
 - is_pass: boolean indicating if the response is factually correct
 - feedback: detailed criticism if is_pass is false, or empty string if true
 

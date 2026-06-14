@@ -231,14 +231,16 @@ def ask_support_bot(prompt: str):
 
 ### Web-Enhanced Verification (`Web_LLMJudge`)
 
-Leverage web search to verify answers against the latest information, perfect for time-sensitive or rapidly evolving topics.
+Leverage web search to verify answers against the latest information, perfect for time-sensitive or rapidly evolving topics. Web_LLMJudge now features automatic intent detection and semantic reranking.
 
 ```python
 @verify(
     rules=rules.Web_LLMJudge(
         model="gpt-4o-mini",
-        max_results=3,  # Number of search results to use
-        backend="duckduckgo"  # Search backend
+        max_results=3,
+        backend="auto",
+        auto_route=True,  # Auto-detect if web search is needed
+        use_reranker=True  # Enable semantic reranking
     ),
     user_prompt="question"
 )
@@ -250,10 +252,60 @@ def ask_ai_about_current_events(question: str):
 **Web_LLMJudge Parameters:**
 - `model`: The OpenAI model to use for evaluation
 - `max_results`: Number of search results to incorporate (default: 3)
-- `backend`: Search backend, supports "duckduckgo", "bing", "google" (default: "duckduckgo")
+- `backend`: Search backend, supports ("brave", "duckduckgo", "google", "grokipedia", "mojeek", "startpage", "wikipedia", "yandex") (default: "auto")
 - `proxy`: Optional proxy for web search
 - `api_key`: Optional OpenAI API key (defaults to global `openai.api_key`)
 - `base_url`: Optional OpenAI API base URL
+- `auto_route`: Automatically determine if web search is needed based on query intent (default: True)
+- `use_reranker`: Enable semantic reranking using Sentence Transformers (default: True)
+- `reranker_model`: Sentence transformer model name (default: "BAAI/bge-small-zh-v1.5")
+- `score_threshold`: Minimum similarity score for reranked results (default: 0.4)
+- `top_k`: Number of top reranked results to include (default: 3)
+
+### Web-Enhanced Generation (`Augmenter`)
+
+Enhance your prompts with web search results before sending them to the LLM. The Augmenter automatically determines if web search is needed and enriches the prompt with relevant information.
+
+```python
+from FactLite import Augmenter
+
+# Initialize augmenter
+augmenter = Augmenter(
+    model="gpt-4o-mini",
+    max_results=5,
+    top_k=3,
+    auto_route=True,
+    use_reranker=True
+)
+
+# Synchronous usage
+result = augmenter.augment("What is the GDP of China in 2024?")
+print(result["augmented_prompt"])
+
+# Asynchronous usage
+import asyncio
+result = asyncio.run(augmenter.augment_async("What's the latest news?"))
+```
+
+**Augmenter Parameters:**
+- `model`: LLM model name for intent detection (default: "gpt-4o-mini")
+- `api_key`: OpenAI API key (defaults to global `openai.api_key`)
+- `base_url`: OpenAI API base URL
+- `max_results`: Maximum number of search results to fetch (default: 15)
+- `top_k`: Number of top reranked results to include in context (default: 3)
+- `backend`: Search backend ("brave", "duckduckgo", "google", "grokipedia", "mojeek", "startpage", "wikipedia", "yandex") (default: "auto")
+- `proxy`: Optional proxy server URL
+- `reranker_model`: Sentence transformer model name (default: "BAAI/bge-small-zh-v1.5")
+- `use_reranker`: Whether to use semantic reranking (default: True)
+- `auto_route`: Whether to automatically determine if search is needed (default: True)
+- `score_threshold`: Minimum similarity score for reranked results (default: 0.4)
+
+**Augmenter Returns:**
+- `augmented_prompt`: The enhanced prompt with search results
+- `original_prompt`: The original user prompt
+- `search_performed`: Boolean indicating if search was performed
+- `search_results`: List of search results used
+- `analysis`: Query analysis metadata (needs_search, keywords, search_query)
 
 ### Rule Chaining
 
